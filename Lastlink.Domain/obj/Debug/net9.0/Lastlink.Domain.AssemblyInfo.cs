@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lastlink.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+54063b06fdf04ff346ac2d88b35ddc49ece5ed11")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+be3d6acf8396d7ae3a7ec0215416ceacf282dca9")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lastlink.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lastlink.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

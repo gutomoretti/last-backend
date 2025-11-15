@@ -1,41 +1,116 @@
+using System.Collections.Generic;
+using System.Linq;
+using FluentValidation;
+using FluentValidation.Results;
+using Lastlink.Api.Products;
+using Lastlink.Application.Common.Exceptions;
+using Lastlink.Application.Products.Commands.CreateProduct;
+using Lastlink.Application.Products.Commands.DeleteProduct;
+using Lastlink.Application.Products.Commands.UpdateProduct;
+using Lastlink.Application.Products.Queries.GetProductById;
+using Lastlink.Application.Products.Queries.GetProducts;
+using Lastlink.Infrastructure.DependencyInjection;
+using MediatR;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(CreateProductCommand).Assembly));
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProductCommandValidator>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+var group = app.MapGroup("/products")
+    .WithTags("Products");
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+group.MapGet("/", async (IMediator mediator, CancellationToken cancellationToken) =>
+    {
+        var result = await mediator.Send(new GetProductsQuery(), cancellationToken);
+        return Results.Ok(result);
+    })
+    .WithName("GetProducts");
+
+group.MapGet("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken cancellationToken) =>
+    {
+        try
+        {
+            var product = await mediator.Send(new GetProductByIdQuery(id), cancellationToken);
+            return Results.Ok(product);
+        }
+        catch (NotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+    })
+    .WithName("GetProductById");
+
+group.MapPost("/", async (CreateProductRequest request, IMediator mediator, IValidator<CreateProductCommand> validator, CancellationToken cancellationToken) =>
+    {
+        var command = new CreateProductCommand(request.Name, request.Category, request.UnitCost);
+        var validationResult = await validator.ValidateAsync(command, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return Results.ValidationProblem(ToValidationDictionary(validationResult));
+        }
+
+        var product = await mediator.Send(command, cancellationToken);
+        return Results.Created($"/products/{product.Id}", product);
+    })
+    .WithName("CreateProduct");
+
+group.MapPut("/{id:guid}", async (Guid id, UpdateProductRequest request, IMediator mediator, IValidator<UpdateProductCommand> validator, CancellationToken cancellationToken) =>
+    {
+        var command = new UpdateProductCommand(id, request.Name, request.Category, request.UnitCost);
+        var validationResult = await validator.ValidateAsync(command, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return Results.ValidationProblem(ToValidationDictionary(validationResult));
+        }
+
+        try
+        {
+            var product = await mediator.Send(command, cancellationToken);
+            return Results.Ok(product);
+        }
+        catch (NotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+    })
+    .WithName("UpdateProduct");
+
+group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken cancellationToken) =>
+    {
+        try
+        {
+            await mediator.Send(new DeleteProductCommand(id), cancellationToken);
+            return Results.NoContent();
+        }
+        catch (NotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+    })
+    .WithName("DeleteProduct");
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+static IDictionary<string, string[]> ToValidationDictionary(ValidationResult validationResult)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    return validationResult.Errors
+        .GroupBy(error => error.PropertyName)
+        .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).ToArray());
 }
