@@ -1,12 +1,14 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Lastlink.Infrastructure.Persistence.Migrations
+namespace Lastlink.Infrastructure.Migrations
 {
-    public partial class InitialCreate : Migration
+    /// <inheritdoc />
+    public partial class Inicial : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -43,10 +45,47 @@ namespace Lastlink.Infrastructure.Persistence.Migrations
                 name: "IX_ProductEvents_ProductId",
                 table: "ProductEvents",
                 column: "ProductId");
+
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "CreatedAt",
+                table: "Products",
+                type: "timestamp with time zone",
+                nullable: false,
+                defaultValueSql: "NOW()",
+                oldClrType: typeof(DateTime),
+                oldType: "timestamp with time zone");
+
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "CreatedAt",
+                table: "ProductEvents",
+                type: "timestamp with time zone",
+                nullable: false,
+                defaultValueSql: "NOW()",
+                oldClrType: typeof(DateTime),
+                oldType: "timestamp with time zone");
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "CreatedAt",
+                table: "Products",
+                type: "timestamp with time zone",
+                nullable: false,
+                oldClrType: typeof(DateTime),
+                oldType: "timestamp with time zone",
+                oldDefaultValueSql: "NOW()");
+
+            migrationBuilder.AlterColumn<DateTime>(
+                name: "CreatedAt",
+                table: "ProductEvents",
+                type: "timestamp with time zone",
+                nullable: false,
+                oldClrType: typeof(DateTime),
+                oldType: "timestamp with time zone",
+                oldDefaultValueSql: "NOW()");
+
             migrationBuilder.DropTable(
                 name: "ProductEvents");
 

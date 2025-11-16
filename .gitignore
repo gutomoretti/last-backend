@@ -49,3 +49,6 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 
+Lastlink.Api/obj
+Lastlink.Application/obj
+Lastlink.Domain/obj
